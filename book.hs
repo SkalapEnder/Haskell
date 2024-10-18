@@ -4,45 +4,18 @@ data Book = Book {
     author      :: String,
     pages       :: Int,
     available   :: Bool
-} deriving (Eq, Show, Read)
-
+} deriving (Eq, Show) 
+-- deriving is tool that create instances
+-- Eq - to find equal books or compare books
+-- Show - to convert values into strings
 -- #########################################
 
--- List of available books function
--- Function 1
-filterAvailableBooks :: [Book] -> [Book]
-filterAvailableBooks books = filter isAvailable books
 
-isAvailable :: Book -> Bool
-isAvailable book 
-    | available book == True = True
-    | otherwise = False
+-- >>> books !! 0 == books !! 17
 
--- Function 2 (Short Version through field)
-isAvailable2 :: Book -> Bool
-isAvailable2 book = available book
+-- >>> let a = Book "Name 1" "Author 1" 200 True
+-- >>> show a
 
---Function 3 (through lambda)
-filterAvailableBooks2 :: [Book] -> [Book]
-filterAvailableBooks2 books = filter (\book -> available book) books
-
--- #########################################
-
--- List of books by author function
-booksByAuthor :: [Book] -> String -> [Book]
-booksByAuthor books authorName = filter (\book -> author book == authorName) books
-
--- #########################################
-
--- Takes list of books and book's title
--- Then search specific Title and make it unavailable
--- If we get another book, we just pass it
-markAsBorrowed :: [Book] -> String -> [Book]
-markAsBorrowed books bookTitle = map updateBook books
-  where
-    updateBook book
-      | title book == bookTitle = book { available = False }
-      | otherwise = book
 
 -- Data
 books :: [Book]
@@ -54,19 +27,65 @@ books = [
             Book "Clean Code" "Robert Martin" 464 True,
             Book "The Pragmatic Programmer" "Andrew Hunt" 352 False,
             Book "Code Complete" "Steve McConnell" 960 True,
-            Book "The Clean Coder" "Robert Martin" 256 True,
+            Book "The Clean Coder" "Robert Martin" 256 False,
             Book "Design Patterns" "Erich Gamma" 395 False,
             Book "Refactoring" "Martin Fowler" 448 True,
             Book "The Mythical Man-Month" "Frederick P. Brooks Jr." 336 False,
             Book "Continuous Delivery" "Jez Humble" 512 True,
             Book "Head First Design Patterns" "Eric Freeman" 694 False,
-            Book "Patterns of Enterprise Application Architecture" "Martin Fowler" 533 True,
+            Book "Patterns of Enterprise Application Architecture" "Martin Fowler" 533 False,
             Book "Working Effectively with Legacy Code" "Michael Feathers" 456 True,
             Book "Test-Driven Development by Example" "Kent Beck" 240 False,
-            Book "Cleanest Code 2nd Edition" "Robert Martin" 378 True,
+            Book "Cleanest Code 2nd Edition" "Robert Martin" 378 False,
+            Book "Haskell in Depth" "Vitaly Bragilevsky" 300 True, 
             Book "Effective Java" "Joshua Bloch" 416 True
             ]
 
+-- #########################################
+
+-- List of available books function
+-- Function 1
+filterAvailableBooks :: [Book] -> [Book]
+filterAvailableBooks books = filter isAvailable books
+  where isAvailable book 
+          | available book == True = True
+          | otherwise = False
+
+-- Function 2 (Short Version through field)
+filterAvailableBooks2 :: [Book] -> [Book]
+filterAvailableBooks2 books = filter isAvailable books
+  where isAvailable book = available book
+
+
+--Function 3 (through lambda(no name function))
+filterAvailableBooks3 :: [Book] -> [Book]
+filterAvailableBooks3 books = filter (\book -> available book) books
+
+-- #########################################
+
+-- List of books by author function
+booksByAuthor :: [Book] -> String -> [Book]
+booksByAuthor books authorName = filter (\book -> author book == authorName) books
+
+booksByAuthor2 :: [Book] -> String -> [Book]
+booksByAuthor2 books authorName = filter isThatAuthor books
+  where isThatAuthor book 
+          | author book == authorName = True
+          | otherwise = False
+
+-- #########################################
+
+-- Takes list of books and book's title
+-- Then search specific Title and make it unavailable
+-- If we get another book, we just pass it
+markAsBorrowed :: [Book] -> String -> [Book]
+markAsBorrowed books bookTitle = map updateBook books
+  where updateBook book
+          | title book == bookTitle = book { available = False }
+          | otherwise = book
+-- where clause can only be defined within function scope
+
+-- #########################################
 -- Count books by specific author
 numsBooksByAuthor :: [Book] -> String -> Int
 numsBooksByAuthor [] _ = 0 -- If empty list
@@ -90,6 +109,7 @@ outputBooks (book:books) = "\n  Title: " ++ title book ++
                             "\nPages: " ++ show (pages book) ++ 
                             "\nIs available: " ++ show (available book) ++ "\n" ++
                             outputBooks books -- Recusrively Step
+-- #########################################
 
 main :: IO()
 main = do
