@@ -1,4 +1,4 @@
-import Text.Read (readMaybe) 
+import Text.Read (readMaybe)
 -- Import to get Maybe type from read
 -- See reason in line 127
 
@@ -12,7 +12,7 @@ data Item = Item{
 
 data Result a = Success a | Error String deriving(Show)
 
--- Functor instance
+-- Functor instance that deal with Result type
 -- 1) If we get some f (function) and Result is Success, 
 --    then implement f to inner value of Success (box)
 -- 2) Otherwise, return String error message
@@ -36,12 +36,12 @@ cart = [
 -- Function to add discount to each price
 applyDiscountToItem :: Float -> Item -> Item
 applyDiscountToItem discount item =
-    item { price = price item * (1 - discount / 100) }
+    item { price = (price item) * (1 - discount / 100) }
 
 -- Using fmap with Result to apply the discount
 -- There doesn't matter: map or fmap **
 applyDiscount :: Float -> [Result Item] -> [Result Item]
-applyDiscount discount = fmap (fmap (applyDiscountToItem discount))
+applyDiscount discount = map . fmap $ applyDiscountToItem discount
 
 -- I used 2 fmap for 2 reasons
 -- 1) I mentioned upper **
@@ -75,15 +75,39 @@ outputCart :: [Result Item] -> IO()
 -- Also compiler complain about fmap (look to presentation)
 outputCart items = mapM_ (\result -> 
     case result of
-        Success item -> putStrLn ("\nName: " ++ name item ++ "\nQuantity: " ++ show (quantity item) ++ "\nPrice: " ++ show (price item))
-        Error _      -> return ()  -- Ignore errors
+        Success item -> putStrLn ("\nName: " ++ name item ++ "\nQuantity: " ++
+                         show (quantity item) ++ "\nPrice: " ++ show (price item))
+        Error _      -> return ()  -- Ignore errors (No output)
     ) items
 
--- Function to output Errors
+outputCart2 :: [Result Item] -> IO()
+outputCart2 items = mapM_ outputItem items
+  where
+    outputItem result =
+      case result of
+        Success item -> putStrLn ("\nName: " ++ name item ++ "\nQuantity: " ++
+                         show (quantity item) ++ "\nPrice: " ++ show (price item))
+        Error _      -> return ()  -- Ignore errors (No output)
+
+outputCart3 :: [Result Item] -> IO ()
+outputCart3 [] = putStrLn "\n\tNo items in cart."
+
+outputCart3 [x] = do
+    case x of
+        Success item -> putStrLn $ "\tItem: " ++ name item ++ ", Quantity: " ++ show (quantity item) ++ ", Price: $" ++ show (price item)
+        Error msg    -> putStrLn $ "\tError: " ++ msg
+        
+outputCart3 (x:xs) = do
+    case x of
+        Success item -> putStrLn $ "\tItem: " ++ name item ++ ", Quantity: " ++ show (quantity item) ++ ", Price: $" ++ show (price item)
+        Error msg    -> putStrLn $ "\tError: " ++ msg
+    outputCart xs
+
+-- Function to output Errors 
 outputError :: [Result Item] -> IO()
 outputError items = mapM_ (\result -> 
     case result of
-        Success _ -> return () -- Ignore Success Items
+        Success _ -> return () -- Ignore Success Items (No output)
         Error msg    -> putStrLn ("Error Item: " ++ msg)  
     ) items
 
@@ -100,6 +124,9 @@ displayMenu = do
     putStrLn "3. Apply discount and calculate total price"
     putStrLn "0. Exit"
     putStr "\nPlease choose an option: "
+
+addItem :: Item -> [Result Item] -> [Result Item]
+addItem item lists = Success item : lists
 
 -- Main menu function with loop
 menuLoop :: [Result Item] -> IO ()

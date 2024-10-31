@@ -11,11 +11,13 @@ data Book = Book {
 -- #########################################
 
 
--- >>> books !! 0 == books !! 17
-
--- >>> let a = Book "Name 1" "Author 1" 200 True
--- >>> show a
-
+isMoreNPages :: Int -> [Book] -> [Book]
+isMoreNPages npages xs = filter (takeBooks npages) xs
+  where 
+    takeBooks :: Int -> Book -> Bool
+    takeBooks npages book
+        | pages book >= npages = True
+        | otherwise = False
 
 -- Data
 books :: [Book]
