@@ -1,6 +1,10 @@
 import Data.List (sortBy)
 import Data.Ord (comparing)
+import Data.Maybe (fromMaybe, fromJust)
+import qualified Data.Map as Map
+import Data.Time
 
+-- Structures
 data Box = Box {
     boxId :: Int,
     boxName :: String,
@@ -20,16 +24,17 @@ data Subscription = Subscription {
     subscriptionId :: Int,
     subManId :: Int,
     subBoxId :: Int,
-    discount :: Float,
-    date :: String
+    date :: String,
+    isDiscountUsed :: Bool
 } deriving (Show)
 
+type DiscountMap = Map.Map String Float
 
 -- Data
 boxes :: [Box]
 boxes =
     [
-        Box 0 "Red Box" 25.5 ["Toy", "Candy"] 10,
+        Box 0 "Red Box" 25.5 ["Reusable Water Bottle", "Bamboo", "Toothbrush"] 10,
         Box 1 "Blue Box" 45.0 ["Notebook", "Pen", "Sticker"] 15,
         Box 2 "Green Box" 15.75 ["Book", "Toy"] 5,
         Box 3 "Yellow Box" 60.25 ["Candy", "Notebook"] 20,
@@ -47,13 +52,20 @@ subscribers =
 
 subscriptions :: [Subscription]
 subscriptions = [
-    Subscription 0 12 0 10.0 "2024-11-01", 
-    Subscription 1 23 1 5.0 "2024-11-02", 
-    Subscription 2 33 2 15.0 "2024-11-03", 
-    Subscription 3 44 3 20.0 "2024-11-04", 
-    Subscription 4  56 4 0.0 "2024-11-05" 
+    Subscription 0 12 0 "2024-11-01" False, 
+    Subscription 1 23 1 "2024-11-02" False, 
+    Subscription 2 33 2 "2024-11-03" False, 
+    Subscription 3 44 3 "2024-11-04" False, 
+    Subscription 4  56 4 "2024-11-05" False 
     ]
 
+discounts :: DiscountMap
+discounts = Map.fromList
+    [ ("WINTER20", 20.0)
+    , ("BLACKFRIDAY", 50.0)
+    , ("SUMMER15", 15.0)
+    , ("CYBER40", 40.0)
+    ]
 
 -- Getter of Free IDs
 getFreeBoxId :: Int -> [Box] -> Int
@@ -120,6 +132,13 @@ outputBoxes (x:xs) =  "\nID: " ++ show (boxId x) ++
                     "\nContents: " ++ show (contents x) ++
                     "\nStock: " ++ show (isBoxAvailable x) ++ "\n" ++ outputBoxes xs
 
+outputBoxesShort :: [Box] -> String
+outputBoxesShort [] = "\nThere is no subscribers!"
+outputBoxesShort [x] = "\nID: " ++ show (boxId x) ++
+                    "\nName: " ++ boxName x ++ "\n" 
+outputBoxesShort (x:xs) =  "\nID: " ++ show (boxId x) ++
+                        "\nName: " ++ boxName x ++ "\n" ++ outputBoxesShort xs
+
 outputSubscribers :: [Subscriber] -> String
 outputSubscribers [] = "\nThere is no subscribers!"
 outputSubscribers [x] = "\nID: " ++ show (subscriberId x) ++
@@ -136,13 +155,12 @@ outputSubscriptions [] = "\nThere is no subscriptions!"
 outputSubscriptions [x] = "\nID: " ++ show (subscriptionId x) ++
                     "\nSubscriber ID: " ++ show (subManId x) ++
                     "\nBox ID: " ++ show (subBoxId x) ++
-                    "\nDiscount: " ++ show (discount x) ++
                     "\nDate: " ++ date x ++ "\n"
 outputSubscriptions (x:xs) = "\nID: " ++ show (subscriptionId x) ++
                     "\nSubscriber ID: " ++ show (subManId x) ++
                     "\nBox ID: " ++ show (subBoxId x) ++
-                    "\nDiscount: " ++ show (discount x) ++
                     "\nDate: " ++ date x ++ "\n" ++ outputSubscriptions xs
+
 
 -- Sorting Functions
 sortBoxesById :: [Box] -> [Box]
@@ -154,6 +172,8 @@ sortSubscribersById = sortBy (comparing subscriberId)
 sortSubscriptionsById :: [Subscription] -> [Subscription]
 sortSubscriptionsById = sortBy (comparing subscriptionId)
 
+-- Statistics Functions
+
 
 -- Extra Functions
 isBoxAvailable :: Box -> Bool
@@ -163,11 +183,14 @@ isNotNothing :: Maybe a -> Bool
 isNotNothing (Just _) = True
 isNotNothing Nothing  = False
 
+stringToDate :: String -> Day
+stringToDate = read
+
 
 -- Menu Section
 displayMenu :: IO ()
 displayMenu = do
-    putStrLn "\n==== Subscription Box Service Management System ===="
+    putStrLn "\n\t==== Subscription Box Service Management System ===="
     putStrLn "\n\tSubscription Section"
     putStrLn "1. Add New Subscription"
     putStrLn "2. Cancel Subscription"
@@ -219,7 +242,7 @@ menuLoop boxes subscribers subscriptions = do
                             
                             if isNotNothing tempSub && isNotNothing tempBox
                                 then do
-                                    let newSubscription = Subscription (getFreeSubscriptionId 0 subscriptions) (read t) (read j) 0.0 "2024-11-01"
+                                    let newSubscription = Subscription (getFreeSubscriptionId 0 subscriptions) (read t) (read j) "2024-11-01" False
                                     let newList = sortSubscriptionsById (newSubscription : subscriptions)
                                     menuLoop boxes subscribers newList
 
@@ -280,6 +303,7 @@ menuLoop boxes subscribers subscriptions = do
             putStr "Write count of the box: "
             stock <- getLine
 
+
             menuLoop boxes subscribers subscriptions
 
         -- Delete Box
@@ -314,6 +338,15 @@ menuLoop boxes subscribers subscriptions = do
         -- Subscriber Section
         -- Add new Subscriber (NOT DONE)
         "7" -> do
+            putStr "Write name of subscriber: "
+            name <- getLine
+
+            putStr "Write email of subscriber: "
+            email <- getLine
+
+            putStr "Choose plan of subscription: "
+            plan <- getLine
+
             menuLoop boxes subscribers subscriptions
 
         -- Delete Subscriber
@@ -349,6 +382,9 @@ menuLoop boxes subscribers subscriptions = do
         -- Other Functions
         -- Apply Seasonal or Promotional Discount (NOT DONE)
         "10" -> do
+            putStr "\nWrite your discount code: "
+            code <- getLine
+
             menuLoop boxes subscribers subscriptions
 
 
@@ -357,7 +393,7 @@ menuLoop boxes subscribers subscriptions = do
             if not (null boxes)
                 then do
                     putStrLn "\n\t==== List of boxes ===="
-                    putStrLn $ outputBoxes boxes
+                    putStrLn $ outputBoxesShort boxes
                     putStr "Write ID of box: "
                     t <- getLine
                     let tempBox = getBoxById (read t) boxes
@@ -365,11 +401,13 @@ menuLoop boxes subscribers subscriptions = do
                     if isNotNothing tempBox
                         then do
                             let d = fmap isBoxAvailable tempBox
-                            print $ "Is box available (stock): " ++ show d
+                            let j = fromMaybe False d 
+
+                            putStrLn $ "Is box available (stock): " ++ show j
                             menuLoop boxes subscribers subscriptions
 
                         else do
-                            putStrLn "\nSubscription is not found!"
+                            putStrLn "\nBox is not found!"
                             menuLoop boxes subscribers subscriptions
 
                 else do
